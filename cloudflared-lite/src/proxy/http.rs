@@ -20,9 +20,7 @@ pub async fn proxy_http(
         biased;
         _ = shutdown.notified() => {}
         result = proxy_dispatch(local_port, &mut send, &mut recv, pool) => {
-            if let Err(e) = result {
-                tracing::debug!("proxy error: {e}");
-            }
+            let _ = result;
         }
     }
 }
@@ -37,7 +35,6 @@ async fn proxy_dispatch(
     let req = read_connect_request(&mut compat_recv).await?;
     drop(compat_recv);
 
-    tracing::debug!(conn_type = ?req.conn_type, "request dispatch");
     match req.conn_type {
         ConnectionType::Http | ConnectionType::WebSocket => {
             let is_ws = req.conn_type == ConnectionType::WebSocket;
@@ -127,7 +124,6 @@ where
     let path = extract_path(&req.dest);
     let is_websocket = is_websocket_type
         || req.headers.iter().any(|(k, _)| k.eq_ignore_ascii_case("HttpHeader:Sec-Websocket-Key"));
-    tracing::debug!(dest = %req.dest, method, host, path, is_websocket, conn_type = ?req.conn_type, "proxying request");
 
     let mut head = format!("{method} {path} HTTP/1.1\r\n");
     if !host.is_empty() {
@@ -151,8 +147,6 @@ where
         }
     }
     head.push_str("\r\n");
-
-    tracing::debug!(request = %head.trim(), "reconstructed request");
 
     let tcp = TcpStream::connect(("127.0.0.1", local_port))
         .await
@@ -184,7 +178,6 @@ where
             remaining -= to_write;
         }
     } else if is_grpc_web {
-        tracing::debug!("gRPC-Web streaming request — pumping body until EOF");
         let mut buf = [0u8; 16384];
         loop {
             let n = from_edge.read(&mut buf).await
@@ -197,7 +190,6 @@ where
     }
 
     let (status, headers, leftover) = read_http_response_head(&mut tcp_read).await?;
-    tracing::debug!(status, header_count = headers.len(), response_headers = ?headers, leftover_len = leftover.len(), "origin response");
 
     let resp_body_len: Option<u64> = headers.iter()
         .find(|(name, _)| name.eq_ignore_ascii_case("content-length"))
