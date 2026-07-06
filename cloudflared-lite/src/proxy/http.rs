@@ -162,11 +162,15 @@ where
     tcp_write.write_all(head.as_bytes()).await
         .map_err(|e| TunnelError::Internal(format!("tcp write head: {e}")))?;
 
-    // Forward request body (if any) — pump exact bytes based on Content-Length
+    let is_grpc_web = req.headers.iter()
+        .any(|(k, v)| k.eq_ignore_ascii_case("HttpHeader:Content-Type")
+            && (v.starts_with("application/grpc-web")
+                || v.starts_with("application/grpc")));
     let req_body_len: u64 = req.headers.iter()
         .find(|(k, _)| k.eq_ignore_ascii_case("HttpHeader:Content-Length"))
         .and_then(|(_, v)| v.parse().ok())
         .unwrap_or(0);
+
     if req_body_len > 0 {
         let mut remaining = req_body_len;
         let mut buf = [0u8; 16384];
@@ -179,9 +183,19 @@ where
                 .map_err(|e| TunnelError::Internal(format!("tcp write body: {e}")))?;
             remaining -= to_write;
         }
+    } else if is_grpc_web {
+        tracing::debug!("gRPC-Web streaming request — pumping body until EOF");
+        let mut buf = [0u8; 16384];
+        loop {
+            let n = from_edge.read(&mut buf).await
+                .map_err(|e| TunnelError::Internal(format!("edge read body: {e}")))?;
+            if n == 0 { break; }
+            tcp_write.write_all(&buf[..n]).await
+                .map_err(|e| TunnelError::Internal(format!("tcp write body: {e}")))?;
+        }
+        let _ = tcp_write.shutdown().await;
     }
 
-    // Read response from origin
     let (status, headers, leftover) = read_http_response_head(&mut tcp_read).await?;
     tracing::debug!(status, header_count = headers.len(), response_headers = ?headers, leftover_len = leftover.len(), "origin response");
 
@@ -202,8 +216,15 @@ where
             .map_err(|e| TunnelError::Internal(format!("write leftover: {e}")))?;
     }
 
-    if status == 101 {
-        // WebSocket upgrade — bidi pump until either side closes
+    let content_type = headers.iter()
+        .find(|(name, _)| name.eq_ignore_ascii_case("content-type"))
+        .map(|(_, v)| v.as_str());
+    let is_streaming = status == 101
+        || content_type.map_or(false, |ct| ct.starts_with("text/event-stream"))
+        || content_type.map_or(false, |ct| ct.starts_with("application/grpc-web")
+            || ct.starts_with("application/grpc"));
+
+    if is_streaming {
         let edge_to_local = async {
             let mut buf = [0u8; 16384];
             loop {

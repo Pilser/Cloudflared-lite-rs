@@ -6,6 +6,8 @@
 !AGENTS.md
 !AGENTSxx.md
 !README.md
+!ROADMAP.md
+!LICENSE
 
 
 # Keep project source and config files
@@ -18,8 +20,8 @@
 !test-server/**
 !schemas/
 !schemas/**
-!waos/
-!waos/**
+!docs/
+!docs/**
 
 # Ignore build artifacts and binary outputs
 target/
@@ -27,4 +29,8 @@ target/
 **/build/
 **/dist/
 **/node_modules/
+
+# Ignore environment files
+.env
+**/.env
 

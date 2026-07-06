@@ -2,9 +2,10 @@
 name = "cloudflared-lite"
 version = "0.1.0"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 description = "Minimal embeddable Cloudflare Tunnel client in Rust — named + quick tunnels, no cloudflared subprocess"
-repository = "https://github.com/your-org/cloudflared-lite-rs"
+repository = "https://github.com/Pilser/Cloudflared-lite-rs"
+readme = "../README.md"
 rust-version = "1.86"
 
 [dependencies]
