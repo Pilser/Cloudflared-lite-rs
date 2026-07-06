@@ -17,7 +17,7 @@
 | `registerConnection` RPC | ✅ | Cap'n Proto on its own tokio runtime |
 | Accept loop (`accept_bi`) | ✅ | Spawns per-stream tasks |
 | Reconnect with exponential backoff + jitter | ✅ | Tested live |
-| HA connections (multiple parallel QUIC) | ✅ | Default 1, configurable |
+| HA connections (multiple parallel QUIC) | 🔧 | N reactors each with own conn_index, shares pool+shutdown. Live-untested. |
 | Graceful shutdown | ✅ | `shutdown()` → Notify → `accept_loop` returns Shutdown → `session.shutdown_graceful()` → `unregisterConnection` RPC |
 | `unregisterConnection` RPC on shutdown | ✅ | Sent by RPC driver thread on Graceful command |
 

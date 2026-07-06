@@ -23,6 +23,7 @@ pub struct Reactor {
     local_port: u16,
     pool: Arc<Pool>,
     shutdown: Arc<Notify>,
+    conn_index: u8,
 }
 
 impl Reactor {
@@ -31,12 +32,14 @@ impl Reactor {
         local_port: u16,
         pool: Arc<Pool>,
         shutdown: Arc<Notify>,
+        conn_index: u8,
     ) -> Self {
         Self {
             config,
             local_port,
             pool,
             shutdown,
+            conn_index,
         }
     }
 
@@ -106,7 +109,7 @@ impl Reactor {
         let registration = register_connection(
             &conn,
             &self.config,
-            0,
+            self.conn_index,
             prev_attempts,
         )
         .await?;

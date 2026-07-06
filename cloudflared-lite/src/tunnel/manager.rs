@@ -42,13 +42,22 @@ impl TunnelBuilder {
         let shutdown = Arc::new(Notify::new());
         let metrics = Arc::new(TunnelMetrics::default());
 
-        let reactor = Reactor::new(config.clone(), self.local_port, pool, shutdown.clone());
-        let handle = tokio::spawn(async move { reactor.run().await });
+        let mut handles = Vec::with_capacity(self.ha_connections as usize);
+        for i in 0..self.ha_connections {
+            let reactor = Reactor::new(
+                config.clone(),
+                self.local_port,
+                pool.clone(),
+                shutdown.clone(),
+                i as u8,
+            );
+            handles.push(tokio::spawn(async move { reactor.run().await }));
+        }
 
         Ok(TunnelManager {
             config,
             shutdown,
-            handle: Some(handle),
+            handles,
             metrics,
         })
     }
@@ -57,7 +66,7 @@ impl TunnelBuilder {
 pub struct TunnelManager {
     config: TunnelConfig,
     shutdown: Arc<Notify>,
-    handle: Option<tokio::task::JoinHandle<Result<()>>>,
+    handles: Vec<tokio::task::JoinHandle<Result<()>>>,
     metrics: Arc<TunnelMetrics>,
 }
 
@@ -92,7 +101,7 @@ impl TunnelManager {
 
     pub async fn shutdown(&mut self) {
         self.shutdown.notify_waiters();
-        if let Some(handle) = self.handle.take() {
+        for handle in self.handles.drain(..) {
             handle.await.ok();
         }
     }

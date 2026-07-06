@@ -26,7 +26,7 @@
 | gRPC-Web | 🔧 Implemented, untested |
 | gRPC (native) | ❌ Requires HTTP/2 support |
 | Quick tunnels | ✅ Implemented |
-| HA connections (multiple QUIC) | ✅ Implemented |
+| HA connections (multiple QUIC) | ✅ Implemented, untested |
 | Reconnect with backoff | ✅ Implemented |
 | Graceful shutdown | ✅ Implemented |
 
