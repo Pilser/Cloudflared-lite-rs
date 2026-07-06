@@ -1,0 +1,30 @@
+# Ignore everything by default
+*
+
+# Keep repo metadata and documentation
+!.gitignore
+!AGENTS.md
+!AGENTSxx.md
+!README.md
+
+
+# Keep project source and config files
+!Cargo.toml
+!Cargo.lock
+!cloudflared-lite/
+!cloudflared-lite/**
+
+!test-server/
+!test-server/**
+!schemas/
+!schemas/**
+!waos/
+!waos/**
+
+# Ignore build artifacts and binary outputs
+target/
+**/target/
+**/build/
+**/dist/
+**/node_modules/
+

@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "cloudflared-lite",
+    "test-server",
+]
+resolver = "2"
